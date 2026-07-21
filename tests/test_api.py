@@ -353,11 +353,12 @@ class TestVoiceCloneEndpoints:
 
     def test_voice_clone_capabilities_custom_voice_not_supported(self, client, monkeypatch):
         """Test capabilities returns not supported for CustomVoice model."""
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, AsyncMock
         from api.backends import factory
         
         # Create a mock backend for CustomVoice model
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.supports_voice_cloning.return_value = False
         mock_backend.get_model_type.return_value = "customvoice"
@@ -375,11 +376,12 @@ class TestVoiceCloneEndpoints:
 
     def test_voice_clone_capabilities_base_model_supported(self, client, monkeypatch):
         """Test capabilities returns supported for Base model."""
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, AsyncMock
         from api.backends import factory
         
         # Create a mock backend for Base model
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.supports_voice_cloning.return_value = True
         mock_backend.get_model_type.return_value = "base"
@@ -408,11 +410,12 @@ class TestVoiceCloneEndpoints:
 
     def test_voice_clone_not_supported_returns_400(self, client, monkeypatch):
         """Test that voice clone returns 400 error when not supported."""
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, AsyncMock
         from api.backends import factory
         
         # Create a mock backend that doesn't support cloning
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.supports_voice_cloning.return_value = False
         mock_backend.get_model_type.return_value = "customvoice"
@@ -435,11 +438,12 @@ class TestVoiceCloneEndpoints:
 
     def test_voice_clone_icl_mode_requires_ref_text(self, client, monkeypatch):
         """Test that voice clone ICL mode requires ref_text."""
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, AsyncMock
         from api.backends import factory
         
         # Create a mock backend that supports cloning
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.supports_voice_cloning.return_value = True
         mock_backend.get_model_type.return_value = "base"

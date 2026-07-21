@@ -526,6 +526,7 @@ class TestRouterCustomVoiceRouting:
         from api.backends import factory
 
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.is_custom_voice.return_value = True
         mock_backend.generate_speech_with_custom_voice = AsyncMock(
@@ -557,6 +558,7 @@ class TestRouterCustomVoiceRouting:
         from api.backends import factory
 
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.is_custom_voice.return_value = False
         mock_backend.generate_speech = AsyncMock(
@@ -590,6 +592,7 @@ class TestVoicesEndpointCustomVoiceLabels:
         from api.backends import factory
 
         mock_backend = MagicMock()
+        mock_backend.reload_to_gpu = AsyncMock()
         mock_backend.is_ready.return_value = True
         mock_backend.get_supported_voices.return_value = ["Vivian", "MyClone"]
         mock_backend.get_supported_languages.return_value = ["English"]
