@@ -316,6 +316,8 @@ async def get_tts_backend():
     if not backend.is_ready():
         warmup_enabled = os.getenv("TTS_WARMUP_ON_START", "false").lower() == "true"
         await initialize_backend(warmup=warmup_enabled)
+    elif hasattr(backend, "reload_to_gpu"):
+        await backend.reload_to_gpu()
 
     return backend
 

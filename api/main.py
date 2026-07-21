@@ -183,20 +183,17 @@ async def lifespan(app: FastAPI):
         async def _idle_watchdog():
             try:
                 while True:
-                    # Check every 30s, or every second for the first
-                    # minute so we get a fast post-load activity spike.
                     now = time.monotonic()
                     since_last = now - app.state.last_speech_at
                     threshold = app.state.idle_timeout_seconds
                     if since_last >= threshold and app.state.speech_request_count > 0:
-                        logger.info(
-                            f"No /v1/audio/speech traffic for "
-                            f"{since_last:.0f}s (threshold "
-                            f"{threshold}s). Shutting down."
-                        )
-                        # SIGTERM lets uvicorn do a graceful drain.
-                        os.kill(os.getpid(), signal.SIGTERM)
-                        return
+                        backend = getattr(app.state, "backend", None)
+                        if backend is not None and hasattr(backend, "offload") and not getattr(backend, "_offloaded", False):
+                            logger.info(
+                                f"No /v1/audio/speech traffic for "
+                                f"{since_last:.0f}s — offloading model to CPU."
+                            )
+                            await backend.offload()
                     if since_last < 60:
                         await asyncio.sleep(1)
                     else:

@@ -72,8 +72,6 @@ class OfficialQwen3TTSBackend(TTSBackend):
             
             logger.info(f"Loading Qwen3-TTS model '{self.model_name}' on {self.device}...")
 
-            # Try loading with Flash Attention 2, fallback to SDPA or eager if not supported
-            # (e.g., RTX 5090/Blackwell GPUs don't have pre-built flash-attn wheels yet)
             attn_implementations = ["flash_attention_2", "sdpa", "eager"]
             model_loaded = False
 
@@ -283,6 +281,37 @@ class OfficialQwen3TTSBackend(TTSBackend):
 
         return info
 
+    async def offload(self) -> None:
+        """Move model to CPU and free VRAM, keeping the server alive."""
+        if not self._ready or not hasattr(self, "model"):
+            return
+        try:
+            import torch
+            if self.device == "cpu":
+                return
+            logger.info("Offloading model to CPU to free VRAM...")
+            await asyncio.to_thread(self.model.model.to, "cpu")
+            torch.cuda.empty_cache()
+            self._offloaded = True
+            logger.info("Model offloaded to CPU — VRAM freed")
+        except Exception as e:
+            logger.warning(f"Could not offload model: {e}")
+
+    async def reload_to_gpu(self) -> None:
+        """Move model back to GPU after offload."""
+        if not self._ready or not hasattr(self, "model"):
+            return
+        if not getattr(self, "_offloaded", False):
+            return
+        try:
+            import torch
+            logger.info("Reloading model to GPU...")
+            await asyncio.to_thread(self.model.model.to, self.device)
+            self._offloaded = False
+            logger.info(f"Model reloaded to {self.device}")
+        except Exception as e:
+            logger.warning(f"Could not reload model to GPU: {e}")
+
     def supports_voice_cloning(self) -> bool:
         """
         Check if this backend supports voice cloning.
@@ -438,6 +467,8 @@ class OfficialQwen3TTSBackend(TTSBackend):
 
             if cache_path.exists():
                 try:
+                    from qwen_tts.inference.qwen3_tts_model import VoiceClonePromptItem
+                    torch.serialization.add_safe_globals([VoiceClonePromptItem])
                     prompt_items = torch.load(
                         cache_path, map_location=self.device, weights_only=True
                     )
