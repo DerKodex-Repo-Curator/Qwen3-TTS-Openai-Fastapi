@@ -63,7 +63,9 @@ mlx = [
 dev = [
   "pytest>=7.0.0",
   "pytest-asyncio>=0.21.0",
+  "pytest-cov>=4.1.0",
   "httpx>=0.24.0",
+  "ruff>=0.5.0",
 ]
 
 [project.urls]
@@ -83,3 +85,30 @@ include-package-data = true
 [tool.setuptools.package-data]
 qwen_tts = ["py.typed", "**/*.npz"]
 api = ["static/*", "static/**/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["examples", "build", "dist", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+  "E501",  # line length handled by formatter
+  "B008",  # FastAPI uses Depends() in defaults — standard pattern
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["api", "qwen_tts"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
+addopts = "-v --tb=short --cov=api --cov=qwen_tts --cov-report=term-missing --cov-fail-under=50"
+norecursedirs = ["examples", ".venv", "build", "dist"]
