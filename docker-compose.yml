@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # GPU-enabled service with official backend (default)
   qwen3-tts-gpu:
@@ -17,19 +15,23 @@ services:
       - WORKERS=1
       - CORS_ORIGINS=*
       - TTS_BACKEND=official
+      - TTS_MODEL_NAME=Qwen/Qwen3-TTS-12Hz-1.7B-Base
       - TTS_WARMUP_ON_START=false
+      - TTS_IDLE_TIMEOUT_SECONDS=60
       # When using device_ids filter, the GPU appears as device 0 inside container
       - CUDA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
       # Mount model cache for persistence
       - ~/.cache/huggingface:/home/appuser/.cache/huggingface
+      - ./custom_voices:/app/custom_voices
+      - ../models:/models
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['2']
+              device_ids: ['0']
               capabilities: [gpu]
     restart: unless-stopped
     healthcheck:

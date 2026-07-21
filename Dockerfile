@@ -43,33 +43,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # =============================================================================
-# Stage 2: Builder with CUDA development tools for flash-attn
+# Stage 2: Production image (official backend)
 # =============================================================================
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
+FROM base AS production
 
-# Install Python and build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.11 \
-    python3.11-venv \
-    python3.11-dev \
-    build-essential \
-    git \
-    curl \
-    ninja-build \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
-    && ln -sf /usr/bin/python3 /usr/bin/python
-
-# Set up Python virtual environment
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
-WORKDIR /build
-
-# Copy dependency files
-COPY pyproject.toml ./
-COPY README.md ./
+WORKDIR /app
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
@@ -77,7 +55,6 @@ RUN pip install --no-cache-dir \
     torchaudio>=2.0.0 \
     --index-url https://download.pytorch.org/whl/cu121
 
-# Install the main package dependencies
 RUN pip install --no-cache-dir \
     transformers>=4.40.0 \
     accelerate>=1.0.0 \
@@ -87,10 +64,7 @@ RUN pip install --no-cache-dir \
     numpy \
     scipy \
     einops \
-    onnxruntime-gpu
-
-# Install FastAPI and server dependencies
-RUN pip install --no-cache-dir \
+    onnxruntime-gpu \
     fastapi>=0.109.0 \
     uvicorn[standard]>=0.27.0 \
     python-multipart \
@@ -98,22 +72,9 @@ RUN pip install --no-cache-dir \
     inflect \
     aiofiles
 
-# Install ninja for faster flash-attn compilation
-RUN pip install --no-cache-dir ninja packaging wheel
-
-# Install flash-attention 2 for optimized attention (requires CUDA)
-RUN pip install --no-cache-dir flash-attn --no-build-isolation
-
-# =============================================================================
-# Stage 3: Production image (official backend)
-# =============================================================================
-FROM base AS production
-
-WORKDIR /app
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# Install flash-attention from pre-built wheel (no CUDA devel image needed)
+RUN pip install --no-cache-dir \
+    "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3.post1/flash_attn-2.8.3.post1%2Bcu12torch2.5cxx11abiFALSE-cp311-cp311-linux_x86_64.whl"
 
 # Copy application code
 COPY . .
